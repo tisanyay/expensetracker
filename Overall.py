@@ -17,9 +17,21 @@ all_time = cols[1].button("All Time")
 
 st.write("# *Overall* transactions analysis from June to December 2024")
 
-transaction_history_1 = pd.read_csv("./transaction_history_csv/sep-dec.csv")
-transaction_history_2 = pd.read_csv("./transaction_history_csv/jun-sep.csv")
-transaction_history = pd.concat([transaction_history_1, transaction_history_2])
+sep_dec = "./transaction_history_csv/sep-dec.csv"
+jun_sep = "./transaction_history_csv/jun-sep.csv"
+
+transaction_history = pd.DataFrame()
+
+transaction_history = dataframe_formatters.append_transaction_history(sep_dec, transaction_history)
+transaction_history = dataframe_formatters.append_transaction_history(jun_sep, transaction_history)
+
+uploaded_file = st.file_uploader("Choose a file")
+
+if uploaded_file:
+    with st.spinner("waiting"):
+        transaction_history = dataframe_formatters.append_uploaded_file_transaction_history(uploaded_file, transaction_history)
+
+
 
 # transaction_history = transaction_history[transaction_history["Reference"] == "UMC-S"]
 transaction_history["Transaction Date"] = pd.to_datetime(transaction_history["Transaction Date"])
