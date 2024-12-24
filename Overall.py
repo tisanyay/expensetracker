@@ -15,7 +15,7 @@ cols = st.columns(6)
 this_month = cols[0].button("This Month")
 all_time = cols[1].button("All Time")
 
-st.write("# Transactions analysis from June to December 2024")
+st.write("# *Overall* transactions analysis from June to December 2024")
 
 transaction_history_1 = pd.read_csv("./transaction_history_csv/sep-dec.csv")
 transaction_history_2 = pd.read_csv("./transaction_history_csv/jun-sep.csv")
@@ -85,7 +85,7 @@ col2.plotly_chart(pie_chart_fig)
 st.plotly_chart(px.box(transaction_history, x="Category", y="Debit Amount"))
 
 df = transaction_history[transaction_history["Debit Amount"].notna()][["Month", "Category", "Debit Amount"]].groupby(["Month", "Category"]).sum()
-st.line_chart(data=df.reset_index(), x="Month", y="Debit Amount", color="Category")
+st.bar_chart(data=df.reset_index(), x="Month", y="Debit Amount", color="Category")
 
 df = transaction_history
 df["In/Out"] = df["Category"].apply(lambda x: "In" if x == "Salary" else "Out")
@@ -117,8 +117,33 @@ if savings and salary:
     st.write("#### You'll have to save at least \$" + money_to_save_each_month + " each month to reach your $6k goal by June 2026.")
     st.write("This gives you $" + str(money_to_spend) + " each month to spend.")
     
-    st.write("Transport fixed at $80")
-    minus_transport = money_to_spend - 80
-    st.write("40\% for shopping -> $" + str(0.4*minus_transport))
-    st.write("35\% for transfers -> $" + str(0.35*minus_transport))
-    st.write("15\% for dining -> $" + str(0.15*minus_transport))
+    st.write("Transport fixed at $100")
+    minus_transport = money_to_spend - 100
+    st.write("50\% for shopping -> $" + str(0.5*minus_transport))
+    st.write("20\% for transfers -> $" + str(0.2*minus_transport))
+    st.write("30\% for dining -> $" + str(0.3*minus_transport))
+
+def normalize(arr):
+    return pd.Series([i/sum(arr) for i in arr])
+
+def change_label(month):
+    return sum(df[df["Month"]==month].values[0][1:])
+
+matrix = transaction_history[transaction_history["Debit Amount"].notna()]
+matrix = matrix[['Month', 'Category', 'Debit Amount']].groupby(['Month', "Category"]).agg(['mean', 'median', 'sum', 'count'])
+matrix.columns = matrix.columns.droplevel()
+matrix = matrix["sum"].reset_index().pivot(index="Month", columns="Category", values="sum")
+if 'Medical' in matrix.columns:
+    matrix = matrix.drop("Medical", axis=1).fillna(0)
+cols = matrix.columns
+
+matrix1 = matrix.apply(lambda x: normalize(x), axis=1)
+matrix1.columns = cols
+matrix1 = matrix1.reset_index()
+df = matrix.reset_index()
+matrix1 = pd.melt(matrix1, value_vars=cols, id_vars=["Month"])
+matrix1["Month"] = matrix1["Month"].apply(change_label)
+
+st.plotly_chart(px.scatter(matrix1, y="value", x="Month", color="Category", title="Percentage of total expenditure spent on each category against total expenditure of each month"))
+
+st.dataframe(transaction_history[["Transaction Date", "Category", "Vendor", "Debit Amount"]])
