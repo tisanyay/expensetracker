@@ -17,66 +17,28 @@ all_time = cols[1].button("All Time")
 
 st.write("# *Overall* transactions analysis from June to December 2024")
 
-sep_dec = "./transaction_history_csv/sep-dec.csv"
-jun_sep = "./transaction_history_csv/jun-sep.csv"
+transaction_file = "./transaction_history_csv/cleaned_transaction_history.csv"
 
-transaction_history = pd.DataFrame()
+transaction_history = pd.read_csv(transaction_file)
 
-transaction_history = dataframe_formatters.append_transaction_history(sep_dec, transaction_history)
-transaction_history = dataframe_formatters.append_transaction_history(jun_sep, transaction_history)
-
-uploaded_file = st.file_uploader("Choose a file")
+uploaded_file = st.file_uploader("Input transaction file")
 
 if uploaded_file:
     with st.spinner("waiting"):
-        transaction_history = dataframe_formatters.append_uploaded_file_transaction_history(uploaded_file, transaction_history)
+        initial_count = transaction_history.shape[0]
+        transaction_history_addon = dataframe_formatters.clean_uploaded_file(uploaded_file)
+        transaction_history_addon["Transaction Date"] = transaction_history_addon["Transaction Date"].dt.strftime("%Y-%m-%d")
+        transaction_history = pd.concat([transaction_history, transaction_history_addon]).drop_duplicates(subset=["Transaction Date", "Debit Amount", "Vendor"])
+        dataframe_formatters.output_csv(transaction_history, "./transaction_history_csv/cleaned_transaction_history.csv")
 
+        rows_added = transaction_history.shape[0] - initial_count
+        st.write("Rows added: " + str(rows_added))
+        dataframe_formatters.output_csv(transaction_history_addon, "./transaction_history_csv/out.csv")
+        
 
-
-# transaction_history = transaction_history[transaction_history["Reference"] == "UMC-S"]
-transaction_history["Transaction Date"] = pd.to_datetime(transaction_history["Transaction Date"])
-transaction_history["Debit Amount"] = transaction_history["Debit Amount"].replace({' ': np.nan})
-transaction_history["Debit Amount"] = transaction_history["Debit Amount"].astype(float)
-transaction_history["Credit Amount"] = transaction_history["Credit Amount"].replace({' ': np.nan})
-transaction_history["Credit Amount"] = transaction_history["Credit Amount"].astype(float)
-transaction_history["Date"] = transaction_history["Transaction Date"].dt.strftime('%b %d')
-transaction_history["Month"] = transaction_history["Transaction Date"].dt.strftime('%m %b')
-transaction_history["Transaction Ref1"] = transaction_history["Transaction Ref1"].fillna("")
-transaction_history["Transaction Ref2"] = transaction_history["Transaction Ref2"].fillna("")
-transaction_history["Transaction Ref3"] = transaction_history["Transaction Ref3"].fillna("")
-transaction_history["Vendor"] = transaction_history["Transaction Ref1"] + ' ' + transaction_history["Transaction Ref2"] + ' ' + transaction_history["Transaction Ref3"]
-transaction_history = transaction_history[transaction_history["Reference"] != "ITR"]
-
-# F&B vendors list
-with open("./restaurants.txt") as restaurants:
-    lines = restaurants.readlines()
-
-    restaurant_list = []
-    for line in lines:
-        line = [dataframe_formatters.remove_special_characters(e) for e in line.split(", ")]
-        restaurant_list.extend(line)
-
-    restaurant_list = list(set(restaurant_list))
-
-# Transport, transfers, salary, and medical lists
-transport_list = ["bus", "grab"]
-transfer_list = ["kwynnzie"]
-salary_list = ["mindef", "saf", "gov"]
-medical_list = ["polyclinic", "clinic"]
-
-# Vendor group dictionary
-vendor_groups = {
-    "F&B": restaurant_list,
-    "Transport": transport_list,
-    "Transfers": transfer_list,
-    "Salary": salary_list,
-    "Medical": medical_list
-}
-
-# Transportation vendors list
-transaction_history["Category"] = transaction_history["Vendor"].apply(lambda x: dataframe_formatters.categorize_vendors(x, vendor_groups))
 
 transaction_history_copy = transaction_history
+
 if this_month:
     transaction_history = transaction_history[transaction_history["Month"] == datetime.today().strftime("%m %b")]
 
