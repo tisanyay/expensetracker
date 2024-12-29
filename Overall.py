@@ -5,6 +5,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import dataframe_formatters
+import io
 from math import ceil
 from datetime import date
 from datetime import datetime
@@ -15,7 +16,6 @@ cols = st.columns(6)
 this_month = cols[0].button("This Month")
 all_time = cols[1].button("All Time")
 
-st.write("# *Overall* transactions analysis from June to December 2024")
 
 transaction_file = "./transaction_history_csv/cleaned_transaction_history.csv"
 
@@ -23,18 +23,17 @@ transaction_history = pd.read_csv(transaction_file)
 
 uploaded_file = st.file_uploader("Input transaction file")
 
+
 if uploaded_file:
     with st.spinner("waiting"):
-        initial_count = transaction_history.shape[0]
-        transaction_history_addon = dataframe_formatters.clean_uploaded_file(uploaded_file)
-        transaction_history_addon["Transaction Date"] = transaction_history_addon["Transaction Date"].dt.strftime("%Y-%m-%d")
-        transaction_history = pd.concat([transaction_history, transaction_history_addon]).drop_duplicates(subset=["Transaction Date", "Debit Amount", "Vendor"])
-        dataframe_formatters.output_csv(transaction_history, "./transaction_history_csv/cleaned_transaction_history.csv")
+        initial_length = transaction_history.shape[0]
 
-        rows_added = transaction_history.shape[0] - initial_count
-        st.write("Rows added: " + str(rows_added))
-        dataframe_formatters.output_csv(transaction_history_addon, "./transaction_history_csv/out.csv")
-        
+        uploaded_file = io.StringIO(uploaded_file.getvalue().decode("utf-8"))
+        transaction_history = dataframe_formatters.append_uploaded_transaction_history(uploaded_file, transaction_history)
+        dataframe_formatters.output_csv(transaction_history, "./transaction_history_csv.cleaned_transaction_history.csv")
+
+        final_length = transaction_history.shape[0]
+        st.write("Rows added: " + str(final_length - initial_length))
 
 
 transaction_history_copy = transaction_history

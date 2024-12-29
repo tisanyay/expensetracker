@@ -103,9 +103,49 @@ def clean_transaction_history(transaction_history):
     transaction_history["Category"] = transaction_history["Vendor"].apply(lambda x: categorize_vendors(x, vendor_groups))
 
     return transaction_history
+def append_transaction_history(file, transaction_history):
+    cleaned_csv = read_transaction_history(file)
 
+    df = pd.read_csv(io.StringIO(cleaned_csv))
+    return pd.concat([transaction_history, df]).drop_duplicates()
+
+
+def read_transaction_history(file):
+    cleaned_csv = ""
+
+    for line in file:
+        valid = check_if_line_is_valid(line)
+
+        if valid:
+            cleaned_csv += valid
+            cleaned_csv += "\n"
+
+    return pd.read_csv(io.StringIO(cleaned_csv))
+
+def join_date(df, transaction_history, date):
+    df_on_date = df[df["Transaction Date"] == date]
+    transaction_on_date = transaction_history[transaction_history["Transaction Date"] == date]
+
+    return pd.concat([df_on_date, transaction_on_date]).drop_duplicates()
+
+def append_uploaded_transaction_history(file, transaction_history):
+    df = read_transaction_history(file)    
+    df = clean_transaction_history(df)
+
+    earliest_date = min(transaction_history["Transaction Date"])
+    latest_date = max(transaction_history["Transaction Date"])
+
+    df = df[(df["Transaction Date"] < earliest_date) | (df["Transaction Date"] > latest_date)]
+    transaction_history_1 = transaction_history[(transaction_history["Transaction Date"] > earliest_date) & (transaction_history["Transaction Date"] < latest_date)]
+
+    join_earlier_history = join_date(df, transaction_history, earliest_date)
+    join_later_history = join_date(df, transaction_history, latest_date)
+
+    return pd.concat([join_earlier_history, transaction_history_1, join_later_history, df]) 
+ 
 if __name__ == "__main__":
     cleaned_history = "./transaction_history_csv/cleaned_transaction_history.csv"
     addon_history = "./transaction_history_csv/sep-dec.csv"
 
     transaction_history = pd.read_csv(cleaned_history)
+ 
