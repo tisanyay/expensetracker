@@ -10,7 +10,6 @@ from math import ceil
 from datetime import date
 from datetime import datetime
 
-# st.set_page_config(layout="wide")
 
 cols = st.columns(6)
 this_month = cols[0].button("This Month")
@@ -30,7 +29,7 @@ if uploaded_file:
 
         uploaded_file = io.StringIO(uploaded_file.getvalue().decode("utf-8"))
         transaction_history = dataframe_formatters.append_uploaded_transaction_history(uploaded_file, transaction_history)
-        dataframe_formatters.output_csv(transaction_history, "./transaction_history_csv.cleaned_transaction_history.csv")
+        dataframe_formatters.output_csv(transaction_history, "./transaction_history_csv/cleaned_transaction_history.csv")
 
         final_length = transaction_history.shape[0]
         st.write("Rows added: " + str(final_length - initial_length))

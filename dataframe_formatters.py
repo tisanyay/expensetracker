@@ -103,12 +103,12 @@ def clean_transaction_history(transaction_history):
     transaction_history["Category"] = transaction_history["Vendor"].apply(lambda x: categorize_vendors(x, vendor_groups))
 
     return transaction_history
+
 def append_transaction_history(file, transaction_history):
     cleaned_csv = read_transaction_history(file)
 
     df = pd.read_csv(io.StringIO(cleaned_csv))
     return pd.concat([transaction_history, df]).drop_duplicates()
-
 
 def read_transaction_history(file):
     cleaned_csv = ""
@@ -131,6 +131,9 @@ def join_date(df, transaction_history, date):
 def append_uploaded_transaction_history(file, transaction_history):
     df = read_transaction_history(file)    
     df = clean_transaction_history(df)
+
+    if transaction_history.shape[0] == 0:
+        return df
 
     earliest_date = min(transaction_history["Transaction Date"])
     latest_date = max(transaction_history["Transaction Date"])
