@@ -45,7 +45,6 @@ if this_month:
 if all_time:
     transaction_history = transaction_history_copy
 
-
 col1, col2 = st.columns(2)
 
 df = transaction_history[transaction_history["Debit Amount"].notna()]
